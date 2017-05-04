@@ -36,7 +36,7 @@ class RulingTranslation(models.Model):
         unique_together = ('ruling', 'lang')
 
     def __str__(self):
-        return self.translated_text
+        return self.text
 
 
 # Not exactly needed, kept for completion
@@ -44,7 +44,7 @@ class RulingTranslation(models.Model):
 class PrintingTranslation(models.Model):
     printing = models.ForeignKey('mtgdb.Printing', verbose_name=_('printing'))
     lang = models.ForeignKey(Language, verbose_name=_('language'))
-    name = models.CharField(_('translated name'), max_length=200)
+    translated_name = models.CharField(_('translated name'), max_length=200)
     multiverse_id = models.PositiveIntegerField(_('multiverse id'), null=True, blank=True)
 
     class Meta:

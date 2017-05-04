@@ -3,8 +3,14 @@ from django.utils.six import StringIO
 from django.core.management import call_command
 from unittest.mock import Mock
 
+import requests_mock
+import requests
+
 from apps.mtgdb.management.commands import populate
-from apps.mtgdb.models import Expansion, Card
+from apps.mtgdb.models import (
+    Expansion, Card, Printing, Rarity, CardColor, CardSubtype, CardSupertype, CardType, Artist,
+    Block, Format, Legality, Ruling)
+from apps.mtglang.models import CardTranslation, PrintingTranslation, Language, RulingTranslation
 
 
 class TestPopulateCommandHandling(TestCase):
@@ -26,10 +32,12 @@ class TestPopulateCommandHandling(TestCase):
 
 
 class TestPopulatingDatabase(TestCase):
-    """Tests populate_expansion() with example test data."""
+    """Tests populate_expansion(), populate_translations() and populate_rulings() with example test data."""
 
     def setUp(self):
         self.sut = populate.Command()
+
+        # TEST DATA BLOCK
         self.example_card_1 = {
             "artist": "Richard Thomas",
             "cmc": 5,
@@ -61,6 +69,9 @@ class TestPopulatingDatabase(TestCase):
             "mciNumber": "47",
             "multiverseid": 94,
             "name": "Air Elemental",
+            "foreignNames": [
+                {"language": "Foreign", "name": "Foreign Name"}
+            ],
             "originalText": "Flying",
             "originalType": "Summon \u2014 Elemental",
             "power": "4",
@@ -114,6 +125,9 @@ class TestPopulatingDatabase(TestCase):
             "mciNumber": "48",
             "multiverseid": 95,
             "name": "Ancestral Recall",
+            "foreignNames": [
+                {"language": "Foreign2", "name": "Foreign Name 2"}
+            ],
             "originalText": "Draw 3 cards or force opponent to draw 3 cards.",
             "originalType": "Instant",
             "printings": [
@@ -141,7 +155,6 @@ class TestPopulatingDatabase(TestCase):
             # 'onlineOnly', 'booster'
             'cards': [self.example_card_1]
         }
-
         self.multiple_exps = [
             {
                 'name': 'TestExp',
@@ -169,16 +182,85 @@ class TestPopulatingDatabase(TestCase):
                 'cards': [self.example_card_1, self.example_card_2]
             }
         ]
+        # END BLOCK
 
     def test_populating_single_expansion(self):
         self.sut.populate_expansion(self.single_exp)
+        self.sut.populate_translations(self.single_exp)
+        self.sut.populate_rulings(self.single_exp)
 
-        exp = Expansion.objects.get(code='EXP')
-
+        exp = Expansion.objects.get()
         self.assertEqual('TestExp', exp.name)
         self.assertEqual('test', exp.block.name)
 
+        card = Card.objects.get()
+        self.assertEqual('Air Elemental', card.name)
 
-        # def test_populating_multiple_expansions(self):
-        #     for expansion in self.multiple_exps:
-        #         populate.Command.populate_expansion(expansion)
+        c_type = CardType.objects.get()
+        self.assertEqual('Creature', c_type.name)
+
+        c_subtype = CardSubtype.objects.get()
+        self.assertEqual('Elemental', c_subtype.name)
+
+        c_color = CardColor.objects.get()
+        self.assertEqual('blue', c_color.name)
+
+        lang = Language.objects.get()
+        self.assertEqual('Foreign', lang.name)
+
+        formats = Format.objects.all()
+        legalities = Legality.objects.all()
+
+        for f in formats:
+            self.assertIn(f.name, str(legalities))
+
+    def test_populating_multiple_expansions(self):
+        for expansion in self.multiple_exps:
+            self.sut.populate_expansion(expansion)
+            self.sut.populate_translations(expansion)
+            self.sut.populate_rulings(expansion)
+
+        exps = Expansion.objects.all()
+        self.assertIn('TestExp', str(exps))
+        self.assertIn('TestExp2', str(exps))
+
+        cards = Card.objects.all()
+        self.assertIn('Air Elemental', str(cards))
+        self.assertIn('Ancestral Recall', str(cards))
+
+        c_types = CardType.objects.all()
+        self.assertIn('Creature', str(c_types))
+        self.assertIn('Instant', str(c_types))
+
+        rarity = Rarity.objects.all()
+        self.assertIn('Uncommon', str(rarity))
+        self.assertIn('Rare', str(rarity))
+
+        langs = Language.objects.all()
+        self.assertIn('Foreign', str(langs))
+        self.assertIn('Foreign2', str(langs))
+
+        formats = Format.objects.all()
+
+        legalities = Legality.objects.all()
+
+        for f in formats:
+            self.assertIn(f.name, str(legalities))
+
+        for c in cards:
+            self.assertIn(c.name, str(legalities))
+
+
+# class TestPopulateWebsiteAvailable(TestCase):
+#
+#     def setUp(self):
+#         self.sut = populate.Command()
+#
+#     def test_populate_with_unavailable_website(self):
+#         # assert 404 in response?
+#
+#         with requests_mock.mock() as m:
+#             test_url = 'http://test.com'
+#             m.get(test_url, status_code=404)
+#             self.sut.populate_from_web(test_url)
+#             self.assertEqual('', self.sut.stdout.getvalue())
