@@ -3,6 +3,9 @@ from django.utils.six import StringIO
 from django.core.management import call_command
 from unittest.mock import Mock
 
+import requests_mock
+import requests
+
 from apps.mtgdb.management.commands import populate
 from apps.mtgdb.models import (
     Expansion, Card, Printing, Rarity, CardColor, CardSubtype, CardSupertype, CardType, Artist,
@@ -246,3 +249,18 @@ class TestPopulatingDatabase(TestCase):
 
         for c in cards:
             self.assertIn(c.name, str(legalities))
+
+
+# class TestPopulateWebsiteAvailable(TestCase):
+#
+#     def setUp(self):
+#         self.sut = populate.Command()
+#
+#     def test_populate_with_unavailable_website(self):
+#         # assert 404 in response?
+#
+#         with requests_mock.mock() as m:
+#             test_url = 'http://test.com'
+#             m.get(test_url, status_code=404)
+#             self.sut.populate_from_web(test_url)
+#             self.assertEqual('', self.sut.stdout.getvalue())
