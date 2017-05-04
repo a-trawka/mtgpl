@@ -14,12 +14,12 @@ class Command(BaseCommand):
     help = 'Fills the database with data.'
 
     def add_arguments(self, parser):
-        # Optional expansion argument ('LEA', 'DDD', etc).
+        """Optional expansion argument ('LEA', 'DDD', etc)."""
         parser.add_argument('-e', '--expansion', nargs='?', help="Get only particular expansion's data.")
 
     def handle(self, *args, **options):
         exp = options['expansion']
-        if exp is not None:
+        if exp:
             try:
                 return self.populate_single_expansion(exp)
             except JSONDecodeError:
@@ -29,9 +29,8 @@ class Command(BaseCommand):
 
     ##############################
 
-    def populate_from_web(self):
+    def populate_from_web(self, url='https://mtgjson.com/json/AllSetsArray-x.json'):
         import requests
-        url = 'https://mtgjson.com/json/AllSetsArray-x.json'
         data = requests.get(url).json()
         for exp_data in data:
             self.populate_expansion(exp_data)
@@ -106,9 +105,9 @@ class Command(BaseCommand):
                 tp, _c = CardType.objects.get_or_create(name=_type)
                 card.types.add(tp)
 
-            for subtp in data.get('subtypes', []):
-                sbt, _c = CardSubtype.objects.get_or_create(name=subtp)
-                card.subtypes.add(sbt)
+        for subtp in data.get('subtypes', []):
+            sbt, _c = CardSubtype.objects.get_or_create(name=subtp)
+            card.subtypes.add(sbt)
 
         for lstatus in data.get('legalities', []):
             format_name = lstatus['format']
@@ -187,7 +186,7 @@ class Command(BaseCommand):
                 printings = Printing.objects.filter(card=card, expansion=exp)
                 for printing in printings:
                     ptrans, _pt = PrintingTranslation.objects.get_or_create(printing=printing, lang=lang, defaults={
-                        'name': trns.get('name', ''),
+                        'translated_name': trns.get('name', ''),
                         'multiverse_id': trns.get('multiverseid'),
                     })
 

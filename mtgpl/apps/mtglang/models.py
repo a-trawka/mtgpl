@@ -44,7 +44,7 @@ class RulingTranslation(models.Model):
 class PrintingTranslation(models.Model):
     printing = models.ForeignKey('mtgdb.Printing', verbose_name=_('printing'))
     lang = models.ForeignKey(Language, verbose_name=_('language'))
-    name = models.CharField(_('translated name'), max_length=200)
+    translated_name = models.CharField(_('translated name'), max_length=200)
     multiverse_id = models.PositiveIntegerField(_('multiverse id'), null=True, blank=True)
 
     class Meta:
@@ -54,5 +54,5 @@ class PrintingTranslation(models.Model):
         return "{lang.code} {printing.expansion.code} {printing.card.name} - {trans}".format(**{
             'lang': self.lang,
             'printing': self.printing,
-            'trans': self.name,
+            'trans': self.translated_name,
         })
